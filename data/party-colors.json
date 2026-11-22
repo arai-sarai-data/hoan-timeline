@@ -1,0 +1,20 @@
+{
+  "_note": "政党・会派の識別色（区別のためだけの色。善悪や評価を表さない）。会派名は前方一致/部分一致で family に寄せる。",
+  "families": [
+    {"family": "自民", "match": ["自由民主党", "自民"], "color": "#D62839"},
+    {"family": "立憲", "match": ["立憲民主", "立憲"], "color": "#1F6FD1"},
+    {"family": "維新", "match": ["日本維新の会", "おおさか維新", "維新"], "color": "#2E9E44"},
+    {"family": "公明", "match": ["公明"], "color": "#E0489B"},
+    {"family": "国民", "match": ["国民民主"], "color": "#F2B300"},
+    {"family": "共産", "match": ["日本共産党", "共産"], "color": "#8E1B12"},
+    {"family": "参政", "match": ["参政党"], "color": "#F07A1A"},
+    {"family": "中道", "match": ["中道"], "color": "#14A3A3"},
+    {"family": "みらい", "match": ["チームみらい"], "color": "#7048B6"},
+    {"family": "社民", "match": ["社会民主党", "社民"], "color": "#5DB7DE"},
+    {"family": "保守", "match": ["日本保守党"], "color": "#22325A"},
+    {"family": "いのち", "match": ["いのちの党"], "color": "#A0612D"},
+    {"family": "沖縄の風", "match": ["沖縄の風"], "color": "#6CC3A8"},
+    {"family": "その他", "match": [], "color": "#8A8F98"},
+    {"family": "無所属", "match": ["無所属", "各派に属しない"], "color": "#B3B7BE"}
+  ]
+}
