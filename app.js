@@ -1699,6 +1699,8 @@
       "<li>与党時・野党時＝法案の提出日（なければ回次の召集日）に、その会派の政党が与党（連立・閣外協力を含む）だったかどうか。下の「与党・野党の表」（出典つき）で決めています。</li>" +
       "<li>会派→政党＝全サイト共通の色の規則（政党名の部分一致）。「その他」「無所属」の色になる会派は、政党が1つに決まるもの（例: 民主党・無所属クラブ→民主党）だけ対応表で決め、それ以外の「その他」は会派名をそのまま政党として扱います。同名の別政党は区別していません。</li>" +
       "<li>成立率＝成立÷提出。審議中も分母に入ります。単独提出＝提出会派が1つだけの法案。共同（同じ側）＝与党どうし・野党どうしの共同、与野党共同＝与党と野党の会派が一緒に出したもの。</li>" +
+      "<li>与党抜き（野党時）／与党だけ（与党時）で出した法案の成立率＝単独提出＋同じ側どうしの共同提出の成立率。相手側の会派と一緒に出した法案（与野党共同）を除き、自分たちの側だけで通せた割合を見る指標です。</li>" +
+      "<li>同名の別政党は分けています（自由党は1998〜2003年と2016〜19年を別に集計。保守党は2000〜02年に連立与党だった政党で、日本保守党とは別）。系列が続く政党（民主党→民進党、立憲民主党、国民民主党など）は、元データの会派名どおり別の政党として数えます。2016年の「民主・維新・無所属クラブ」は民主党と維新の党の統一会派のため、どちらにも含めず単独で数えます。</li>" +
       "<li>全会一致率＝成立した法案のうち、記録のある本会議の採決態様（衆議院・参議院）がすべて「全会一致」だった割合（採決態様の記録がある成立法案が分母）。全会一致の法案は対立の少ない法案と言えますが、この値の高い低いに良し悪しの方向はありません。</li>" +
       "<li>ティア・偏差値・順位: 同じ区分（与党時どうし・野党時どうし）の中で、提出" + C.minN + "件以上の単位だけ。対象が" + C.minTierUnits + "つ未満の区分にはティアを付けません。偏差値＝50＋10×（成立率−区分内の平均）÷区分内の標準偏差。" + TIER_TXT + "。" +
       "政党単位: 与党時 対象" + PM["与党"].eligible + "・平均" + PM["与党"].mean + "%、野党時 対象" + PM["野党"].eligible + "・平均" + PM["野党"].mean + "%。" +
@@ -1710,6 +1712,11 @@
       '<button type="button" data-u="group" aria-pressed="' + (SC.unit === "group") + '">会派単位（当時の会派名）</button></div>';
   }
   function cellRate(x, n) { return '<div class="ib"><span><i style="width:' + (x || 0) + '%"></i></span><b>' + pf(x) + "</b></div>" + (n != null ? '<small class="nn">' + num(n) + "件</small>" : ""); }
+  function crossCell(s) {
+    if (!s.en) return '<span class="muted">成立なし</span>';
+    var c = s.cross[1], p = c / s.en * 100;
+    return '<div class="ib x"><span><i style="width:' + p.toFixed(1) + '%"></i></span><b>' + num(c) + "/" + num(s.en) + "件</b></div>";
+  }
   function scoreTable(st, isParty) {
     var items = cardUnits(isParty).filter(function (x) { return x.st[st]; });
     var el = items.filter(function (x) { return x.st[st].rank; }).sort(function (a, b) { return a.st[st].rank - b.st[st].rank || b.st[st].n - a.st[st].n; });
@@ -1717,15 +1724,15 @@
     var row = function (x) {
       var s = x.st[st];
       return "<tr><td class=\"num rk\">" + (s.rank || "") + "</td><td>" + tierBox(s.tier) + "</td><td>" + unitBadge(x, isParty, "lg") + "</td>" +
-        "<td>" + cellRate(s.rate) + "</td><td>" + cellRate(s.soloRate, nOf(s.solo)) + "</td>" +
-        '<td class="num">' + num(nOf(s.joint)) + " / " + num(nOf(s.cross)) + "</td>" +
+        "<td>" + cellRate(s.rate) + "</td><td>" + cellRate(s.selfRate, nOf(s.self)) + "</td>" +
+        "<td>" + crossCell(s) + "</td>" +
         "<td>" + cellRate(s.unRate, s.enM) + "</td>" +
         '<td class="num">' + num(s.en) + '</td><td class="num">' + num(s.n) + (s.pend ? '<small class="nn">審議中' + s.pend + "</small>" : "") + "</td>" +
         '<td class="num">' + (!isParty ? '<span class="muted">政党単位で表示</span>' : s.seats != null ? num(Math.round(s.seats)) + '<small class="nn">' + s.seatSes + "回次の平均</small>" : '<span class="muted">未取得</span>') + "</td>" +
         '<td class="num hide-sm">第' + s.from + (s.to !== s.from ? "〜" + s.to : "") + "回</td></tr>";
     };
-    var head = '<thead><tr><th class="num">順位</th><th>ティア</th><th>' + (isParty ? "政党" : "会派") + "</th><th>成立率</th><th>単独提出の成立率</th>" +
-      '<th class="num">共同（同じ側／与野党）</th><th>成立のうち全会一致</th><th class="num">成立</th><th class="num">提出</th><th class="num">議席数</th><th class="num hide-sm">記録の回次</th></tr></thead>';
+    var head = '<thead><tr><th class="num">順位</th><th>ティア</th><th>' + (isParty ? "政党" : "会派") + "</th><th>成立率</th><th>" + (st === "野党" ? "与党抜きで出した法案の成立率" : "与党だけで出した法案の成立率") + "</th>" +
+      '<th>' + (st === "野党" ? "成立のうち与党と共同提出" : "成立のうち野党と共同提出") + '</th><th>成立のうち全会一致</th><th class="num">成立</th><th class="num">提出</th><th class="num">議席数</th><th class="num hide-sm">記録の回次</th></tr></thead>';
     return '<div class="table-wrap"><table class="stable">' + head + "<tbody>" + (el.length ? el.map(row).join("") : '<tr><td colspan="11" class="muted">対象なし</td></tr>') + "</tbody></table></div>" +
       (rest.length ? '<details class="more"><summary>' + st + "時の提出が" + FACTS.card.minN + "件未満のため順位・ティアの対象外（" + rest.length + "）</summary>" +
         '<div class="table-wrap"><table class="stable">' + head + "<tbody>" + rest.map(row).join("") + "</tbody></table></div></details>" : "");
@@ -1750,16 +1757,43 @@
       var s = x.st[st];
       return '<article class="bw ' + kind + '"><p class="bw-k">' + st + "時の" + label + "の成立率 " + (kind === "best" ? "ベスト" : "ワースト") + "（" + st + "の中で）</p>" +
         '<div class="bw-n">' + s.rate.toFixed(1) + "<small>%</small></div><div>" + unitBadge(x, isParty, "xl") + "</div>" +
-        '<p class="fc-t">' + st + "時の提出" + num(s.n) + "件のうち成立" + num(s.en) + "件" + (s.dev != null ? "。偏差値" + s.dev.toFixed(1) + "・ティア" + s.tier : "") + "。単独提出の成立率" + pf(s.soloRate) + "。</p></article>";
+        '<p class="fc-t">' + st + "時の提出" + num(s.n) + "件のうち成立" + num(s.en) + "件" + (s.dev != null ? "。偏差値" + s.dev.toFixed(1) + "・ティア" + s.tier : "") + "。" + (st === "野党" ? "与党抜きで出した法案の成立率" : "与党だけで出した法案の成立率") + pf(s.selfRate) + "、成立のうち" + (st === "野党" ? "与党" : "野党") + "と共同提出" + num(s.cross[1]) + "件。</p></article>";
     };
     var txt = "【" + st + "時の" + label + "の議員立法 成立率】ベスト" + b.name + " " + pf(b.st[st].rate) + "、ワースト" + w.name + " " + pf(w.st[st].rate) + "（" + diff + "、" + st + "どうしで比較・提出" + FACTS.card.minN + "件以上）#国会 #議員立法 法案の生涯タイムライン";
     return '<div class="bwrow">' + card(b, "best") + '<div class="bw-x"><b>' + esc(diff) + "</b><span>ベスト÷ワースト</span>" + xBtn(txt, "scores") + "</div>" + card(w, "worst") + "</div>";
+  }
+  function routeBox(st, isParty) {
+    var el = cardUnits(isParty).filter(function (x) { return x.st[st] && x.st[st].en > 0 && x.st[st].n >= 10; })
+      .sort(function (a, b) { return b.st[st].en - a.st[st].en; }).slice(0, 14);
+    if (!el.length) return "";
+    var other = st === "野党" ? "与党" : "野党", mx = Math.max.apply(null, el.map(function (x) { return x.st[st].en; }));
+    var tot = el.reduce(function (a, x) { return a + x.st[st].en; }, 0), cr = el.reduce(function (a, x) { return a + x.st[st].cross[1]; }, 0);
+    return '<div class="route"><h3>成立した法案の中身：' + other + "抜きで通したか、" + other + "と組んで通したか</h3>" +
+      '<p class="lead-s">' + (st === "野党" ? "下の" + el.length + (isParty ? "政党" : "会派") + "が野党だった時に成立した" + num(tot) + "件のうち、" + num(cr) + "件（" + pf(cr / tot * 100) + "）は与党の会派も提出者に入った法案です。成立率が高く見えても、与党と一緒に出した法案が通った結果のことがあります。" :
+        "与党だった時に成立した" + num(tot) + "件のうち、野党の会派も提出者に入った法案は" + num(cr) + "件です。") + "</p>" +
+      '<div class="rbars">' + el.map(function (x) {
+        var s = x.st[st], a = s.en - s.cross[1], b = s.cross[1];
+        return '<div class="rrow"><span class="rn">' + unitBadge(x, isParty) + '</span><span class="rb"><i class="ra" style="width:' + (a / mx * 100).toFixed(1) + '%"></i><i class="rc" style="width:' + (b / mx * 100).toFixed(1) + '%"></i></span><span class="rv">' + other + "抜き <b>" + num(a) + "</b>・" + other + "と共同 <b>" + num(b) + "</b></span></div>";
+      }).join("") + '</div><div class="legend"><span><i class="sw ra"></i>' + other + 'の会派が提出者に入っていない法案</span><span><i class="sw rc"></i>' + other + "の会派と共同で提出した法案</span></div></div>";
+  }
+  function soloBox(st, isParty) {
+    var el = cardUnits(isParty).filter(function (x) { return x.st[st] && nOf(x.st[st].solo) >= 5; })
+      .sort(function (a, b) { return nOf(b.st[st].solo) - nOf(a.st[st].solo); });
+    if (!el.length) return "";
+    var n = el.reduce(function (a, x) { return a + nOf(x.st[st].solo); }, 0), en = el.reduce(function (a, x) { return a + x.st[st].solo[1]; }, 0);
+    return '<details class="more solo"><summary>単独提出（1つの' + (isParty ? "政党" : "会派") + "だけで出した法案）は別に見る：" + st + "時 合計" + num(n) + "件・成立" + num(en) + "件</summary>" +
+      '<p class="note">' + (st === "野党" ? "野党が単独で出した法案はほとんど成立しません（本会議は出席議員の過半数で決まるため）。成立率で比べても差がつかないので、ここでは何を何件出したかを並べます。" : "与党の会派が単独で出した法案です。") + "</p>" +
+      '<div class="table-wrap"><table class="stable"><thead><tr><th>' + (isParty ? "政党" : "会派") + '</th><th class="num">単独提出</th><th class="num">成立</th><th>単独提出に多い分野（件名による自動分類）</th></tr></thead><tbody>' +
+      el.map(function (x) {
+        var s = x.st[st];
+        return "<tr><td>" + unitBadge(x, isParty) + '</td><td class="num">' + num(s.solo[0]) + '</td><td class="num">' + num(s.solo[1]) + "</td><td>" + (s.soloTags || []).slice(0, 3).map(function (t) { return '<span class="chip">' + esc(IDX.tags[t[0]][1]) + " " + t[1] + "</span>"; }).join("") + "</td></tr>";
+      }).join("") + "</tbody></table></div></details>";
   }
   function statusSections() {
     var isP = SC.unit === "party";
     return STS.map(function (st) {
       return '<section class="sec"><div class="sec-hd"><h2>' + stMark(st) + st + "だった時の成績表</h2><p>" + (st === "与党" ? "与党の会派どうしで比べる（与党の政策の多くは閣法として別に出ます）" : "野党の会派どうしで比べる") + "</p></div>" +
-        bestWorst(st, isP) + tierBoard(st, isP) + '<div style="margin-top:14px">' + scoreTable(st, isP) + "</div></section>";
+        bestWorst(st, isP) + routeBox(st, isP) + tierBoard(st, isP) + '<div style="margin-top:14px">' + scoreTable(st, isP) + "</div>" + soloBox(st, isP) + "</section>";
     }).join("");
   }
 
@@ -1825,7 +1859,7 @@
       STS.forEach(function (st) {
         var s = p.st[st]; if (!s) return;
         if (kind === "n" && s.n >= 5) out.push({ name: p.name, fam: p.fam, st: st, x: s.n, y: s.rate, n: s.n,
-          tip: "<b>" + esc(p.name) + "（" + st + "時）</b><div class=\"r\"><span>提出</span><span>" + num(s.n) + "件</span></div><div class=\"r\"><span>成立</span><span>" + num(s.en) + "件</span></div><div class=\"r\"><span>成立率</span><span>" + pf(s.rate) + "</span></div><div class=\"r\"><span>単独提出の成立率</span><span>" + pf(s.soloRate) + "（" + num(nOf(s.solo)) + "件）</span></div>" });
+          tip: "<b>" + esc(p.name) + "（" + st + "時）</b><div class=\"r\"><span>提出</span><span>" + num(s.n) + "件</span></div><div class=\"r\"><span>成立</span><span>" + num(s.en) + "件</span></div><div class=\"r\"><span>成立率</span><span>" + pf(s.rate) + "</span></div><div class=\"r\"><span>" + (st === "野党" ? "与党抜き" : "与党だけ") + "の成立率</span><span>" + pf(s.selfRate) + "（" + num(nOf(s.self)) + "件）</span></div>" });
         if (kind === "seat" && s.seats != null && s.seatN >= 5) out.push({ name: p.name, fam: p.fam, st: st, x: s.seats, y: s.seatRate, n: s.seatN,
           tip: "<b>" + esc(p.name) + "（" + st + "時）</b><div class=\"r\"><span>平均議席数</span><span>" + s.seats + "（" + s.seatSes + "回次）</span></div><div class=\"r\"><span>その回次の提出</span><span>" + num(s.seatN) + "件</span></div><div class=\"r\"><span>成立率</span><span>" + pf(s.seatRate) + "</span></div>" });
       });
@@ -1892,7 +1926,7 @@
   var renderScores = withIndex(function () {
     document.title = "政党・会派の成績表｜法案の生涯タイムライン";
     var C = FACTS.card, B = C.billSide;
-    var h = '<section class="hero"><h1>政党・会派の成績表</h1><p class="lead">提出した法案がどれだけ成立したかを、<b>与党だった時</b>と<b>野党だった時</b>に分けて並べます。通しやすい法案だけを出していないか（単独提出か共同提出か、全会一致の割合、提出数）と、議席数も同時に見られます。</p></section>' +
+    var h = '<section class="hero"><h1>政党・会派の成績表</h1><p class="lead">提出した法案がどれだけ成立したかを、<b>与党だった時</b>と<b>野党だった時</b>に分けて並べます。与党と組んで通した法案か、与党抜きで通した法案か、全会一致の割合や提出数と、議席数も同時に見られます。</p></section>' +
       structBox() +
       '<div class="kpis">' + kpi("与党の会派だけで提出", pf(B.ruling.rate), "成立率・衆法 " + num(B.ruling.n) + "件") + kpi("野党の会派だけで提出", pf(B.opp.rate), "成立率・衆法 " + num(B.opp.n) + "件") +
       kpi("与党と野党の共同提出", pf(B.mixed.rate), "成立率・衆法 " + num(B.mixed.n) + "件") + kpi("委員長提出（別枠）", num(C.chair.n) + "<small>件</small>", "成立 " + num(C.chair.en) + "件・政党の数には入れない") + "</div>" +
@@ -1922,7 +1956,7 @@
       var el = C.parties.filter(function (x) { return x.st[st] && x.st[st].rank; }).sort(function (a, b) { return a.st[st].rank - b.st[st].rank || b.st[st].n - a.st[st].n; });
       return '<div class="tease"><h3>' + stMark(st) + st + "だった時（" + st + "どうしで比較）</h3><ol class=\"top10\">" + el.slice(0, 3).map(function (x, i) {
         var s = x.st[st];
-        return '<li><span class="rk">' + (i + 1) + '</span><span class="nm">' + partyBadge(x, "lg") + '</span><span class="vv">' + s.rate.toFixed(1) + '<small>%</small></span><span class="sub">提出' + num(s.n) + "件・単独提出の成立率" + pf(s.soloRate) + "</span></li>";
+        return '<li><span class="rk">' + (i + 1) + '</span><span class="nm">' + partyBadge(x, "lg") + '</span><span class="vv">' + s.rate.toFixed(1) + '<small>%</small></span><span class="sub">提出' + num(s.n) + "件・成立のうち" + (st === "野党" ? "与党" : "野党") + "と共同" + num(s.cross[1]) + "件</span></li>";
       }).join("") + "</ol></div>";
     };
     return '<section class="sec"><div class="sec-hd"><h2>政党の成績表：与党時と野党時に分けて</h2><p>同じ区分の中だけで比べる</p></div>' +
@@ -1971,7 +2005,7 @@
       return '<div class="vsst"><h3>' + stMark(st) + st + "だった時どうし</h3>" +
         '<div class="vshd sm"><div>' + tierBox(g(sa, "tier")) + '<span class="muted">' + (sa ? st + "内" + (sa.rank ? sa.rank + "位" : "順位対象外") : "この区分の記録なし") + '</span></div><div class="vs-big">VS</div><div><span class="muted">' + (sb ? st + "内" + (sb.rank ? sb.rank + "位" : "順位対象外") : "この区分の記録なし") + "</span>" + tierBox(g(sb, "tier")) + "</div></div>" +
         metric("成立率", g(sa, "rate"), g(sb, "rate"), pf, true) +
-        metric("単独提出の成立率", g(sa, "soloRate"), g(sb, "soloRate"), pf, true, "単独 " + num(sa ? nOf(sa.solo) : 0) + "件 対 " + num(sb ? nOf(sb.solo) : 0) + "件") +
+        metric(st === "野党" ? "与党抜きで出した法案の成立率" : "与党だけで出した法案の成立率", g(sa, "selfRate"), g(sb, "selfRate"), pf, true, num(sa ? nOf(sa.self) : 0) + "件 対 " + num(sb ? nOf(sb.self) : 0) + "件") +
         metric("成立のうち全会一致の割合（高い／低い）", g(sa, "unRate"), g(sb, "unRate"), pf, false) +
         metric("提出数", g(sa, "n"), g(sb, "n"), nf, false) + "</div>";
     };
@@ -2027,12 +2061,17 @@
       return "<li>" + rkName(it) + ' <b>' + esc(it.vt) + "</b>" + (it.sub ? ' <span class="muted">' + esc(it.sub) + "</span>" : "") + "</li>";
     }).join("") + "</ol>";
   }
+  function rkInsight(rk, full) {
+    var I = rk.insight; if (!I || !I.lines || !I.lines.length) return "";
+    if (!full) return '<div class="rkins sm"><b>傾向</b>' + esc(I.lines[I.lines.length > 1 && /^内訳/.test(I.lines[0]) ? 1 : 0]) + "</div>";
+    return '<div class="rkins"><h3>このランキングの傾向</h3><p class="muted">対象: ' + esc(I.scope) + "。元データから自動で数えた結果です。</p><ul>" + I.lines.map(function (l) { return "<li>" + esc(l) + "</li>"; }).join("") + "</ul></div>";
+  }
   function catName(k) { var c = FACTS.rankings.cats.filter(function (x) { return x[0] === k; })[0]; return c ? c[1] : k; }
   function rkCard(rk, full) {
     return '<article class="rkcard' + (full ? " full" : "") + '" id="rk-' + rk.id + '"><div class="rkhd"><span class="tg">' + esc(catName(rk.cat)) + "</span>" +
       (rk.fact ? '<span class="rkfact">' + esc(rk.fact) + "</span>" : "") +
       (full ? "<h1>" + esc(rk.title) + "</h1>" : '<h2><a href="#rank-' + rk.id + '">' + esc(rk.title) + "</a></h2>") + "</div>" +
-      rkTop3(rk) + (full ? rkRest(rk) : "") + '<p class="note">' + esc(rk.crit) + "</p>" +
+      rkTop3(rk) + (full ? rkRest(rk) : "") + rkInsight(rk, full) + '<p class="note">' + esc(rk.crit) + "</p>" +
       (rk.more ? '<p class="rkmore"><a href="#' + esc(rk.more) + '">' + (rk.more === "tags" ? "暮らしテーマ・分野タグの一覧へ" : "このテーマの法案を一覧で見る") + " →</a></p>" : "") +
       '<p class="rkbrand">法案の生涯タイムライン｜衆議院・参議院の議案データから</p>' +
       (full ? shareBlock(rkShareText(rk), "rank-" + rk.id) : '<div class="share">' + xBtn(rkShareText(rk), "rank-" + rk.id) + '<a class="btn" href="#rank-' + rk.id + '">TOP10とテキストコピー</a></div>') + "</article>";
@@ -2045,7 +2084,7 @@
       '<p class="chips"><a class="btn primary" href="#list">全法案を検索・一覧で見る</a><a class="btn" href="#tags">暮らしテーマ・分野タグ</a></p></section>' +
       '<div class="tagbar" id="rkCat" role="group" aria-label="カテゴリで絞り込み"><button type="button" data-c="all" aria-pressed="' + (RK.cat === "all") + '">すべて（' + L.length + "）</button>" +
       cats.map(function (c) { return '<button type="button" data-c="' + c[0] + '" aria-pressed="' + (RK.cat === c[0]) + '">' + esc(c[1]) + "（" + L.filter(function (x) { return x.cat === c[0]; }).length + "）</button>"; }).join("") + "</div>" +
-      '<div class="rkgrid" id="rkGrid"></div><p class="chips" style="margin-top:16px"><a class="btn" href="#rank">TOP10まとめ（旧ランキング）</a><a class="btn" href="#scores">政党・会派の成績表</a></p>';
+      '<div class="rkgrid" id="rkGrid"></div><p class="chips" style="margin-top:16px"><a class="btn" href="#scores">政党・会派の成績表</a></p>';
     function paint() {
       document.getElementById("rkGrid").innerHTML = L.filter(function (x) { return RK.cat === "all" || x.cat === RK.cat; }).map(function (x) { return rkCard(x, false); }).join("");
     }
@@ -2209,7 +2248,7 @@
     if (r.v === "member") return renderMember(r.id);
     if (r.v === "group") return renderGroup(r.id);
     if (r.v === "tag") return renderTag(r.id);
-    if (r.v === "rank") return renderRank();
+    if (r.v === "rank") return renderRankings();
     if (r.v === "rankings") return renderRankings();
     if (r.v === "rankone") return renderRankOne(r.id);
     if (r.v === "scores") return renderScores();
